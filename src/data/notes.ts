@@ -32,6 +32,7 @@ export const mockNotes: Note[] = [
     linkedEmailId: 'email-001',
     wordCount: 142,
     createdByAI: false,
+    attachments: [],
   },
   {
     id: 'note-002',
@@ -62,6 +63,7 @@ export const mockNotes: Note[] = [
     updatedAt: '2026-09-07T14:30:00Z',
     wordCount: 98,
     createdByAI: false,
+    attachments: [],
   },
   {
     id: 'note-003',
@@ -95,6 +97,7 @@ Sarah Chen, James Okafor, Natalie Brooks, Kevin Zhao, Raj Patel
     linkedEventId: 'event-001',
     wordCount: 118,
     createdByAI: false,
+    attachments: [],
   },
   {
     id: 'note-004',
@@ -129,6 +132,7 @@ Sarah Chen, James Okafor, Natalie Brooks, Kevin Zhao, Raj Patel
     updatedAt: '2026-09-09T11:00:00Z',
     wordCount: 107,
     createdByAI: false,
+    attachments: [],
   },
   {
     id: 'note-005',
@@ -160,6 +164,7 @@ Sarah Chen, James Okafor, Natalie Brooks, Kevin Zhao, Raj Patel
     updatedAt: '2026-09-01T18:00:00Z',
     wordCount: 72,
     createdByAI: false,
+    attachments: [],
   },
   {
     id: 'note-006',
@@ -188,5 +193,6 @@ The August investor update reports strong momentum:
     linkedEmailId: 'email-004',
     wordCount: 89,
     createdByAI: true,
+    attachments: [],
   },
 ];

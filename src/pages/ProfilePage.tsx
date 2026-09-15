@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
   function handleSignOut() {
     setConfirmSignOut(false);
-    trackEvent('sign_out', { from: 'profile' });
+    trackEvent('settings_change', { action: 'sign_out', from: 'profile' });
     logout();
     navigate('/welcome', { replace: true });
   }

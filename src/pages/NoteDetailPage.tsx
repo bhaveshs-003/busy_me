@@ -131,7 +131,7 @@ export default function NoteDetailPage() {
     );
   }
 
-  const linkedPack = packs.find((p) => p.noteIds?.includes(note.id));
+  const linkedPack = packs.find((p) => p.linkedNoteIds.includes(note.id));
   const wordCount = countWords(body);
 
   function handleTitleChange(next: string) {

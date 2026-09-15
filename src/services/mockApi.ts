@@ -55,8 +55,8 @@ const MOCK_EMAIL_BODIES = [
   'Hi,\n\nThis is a friendly reminder that your contract is up for renewal on Friday. Please sign and return at your earliest convenience.\n\nThank you,',
 ];
 
-function buildEmails(count = 60) {
-  const emails = [];
+function buildEmails(count = 60): MockEmail[] {
+  const emails: MockEmail[] = [];
   const now = Date.now();
   for (let i = 0; i < count; i++) {
     const contact = MOCK_CONTACTS[i % MOCK_CONTACTS.length];
@@ -82,9 +82,9 @@ function buildEmails(count = 60) {
   return emails.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }
 
-const _emails = buildEmails(60);
+const _emails: MockEmail[] = buildEmails(60);
 
-const _tasks = [
+const _tasks: MockTask[] = [
   { id: 't1', title: 'Review Q3 partnership proposal', description: 'Go through Alice\'s deck and prepare feedback', status: 'in-progress', priority: 'high', dueDate: '2026-09-15T17:00:00Z', assignee: 'me', tags: ['business', 'partnership'], createdAt: '2026-09-08T09:00:00Z', updatedAt: '2026-09-09T14:00:00Z' },
   { id: 't2', title: 'Send invoice reminder to Bob', description: 'Invoice #INV-2025-0044 is 15 days overdue', status: 'todo', priority: 'medium', dueDate: '2026-09-11T12:00:00Z', assignee: 'me', tags: ['finance'], createdAt: '2026-09-09T08:00:00Z', updatedAt: '2026-09-09T08:00:00Z' },
   { id: 't3', title: 'Prepare product roadmap slides', description: 'For Thursday\'s roadmap review meeting', status: 'todo', priority: 'high', dueDate: '2026-09-12T09:00:00Z', assignee: 'me', tags: ['product', 'presentation'], createdAt: '2026-09-07T11:00:00Z', updatedAt: '2026-09-08T15:00:00Z' },
@@ -93,7 +93,7 @@ const _tasks = [
   { id: 't6', title: 'Schedule onboarding call for new hires', description: 'Coordinate with HR for next Monday', status: 'in-progress', priority: 'medium', dueDate: '2026-09-14T11:00:00Z', assignee: 'me', tags: ['hr'], createdAt: '2026-09-06T09:00:00Z', updatedAt: '2026-09-09T10:00:00Z' },
 ];
 
-const _events = [
+const _events: MockEvent[] = [
   { id: 'ev1', title: 'Product Roadmap Review', description: 'Q4 roadmap alignment session', start: '2026-09-11T14:00:00Z', end: '2026-09-11T15:00:00Z', location: 'Zoom', attendees: ['alice@acmecorp.com', 'me@busyme.app'], color: '#6366f1', isAllDay: false, recurrence: null, createdAt: '2026-09-08T09:00:00Z' },
   { id: 'ev2', title: 'Lunch with Bob Martinez', description: 'Discuss StartupXYZ collaboration', start: '2026-09-12T12:00:00Z', end: '2026-09-12T13:30:00Z', location: 'The Oak Brasserie, SF', attendees: ['bob@startupxyz.io', 'me@busyme.app'], color: '#10b981', isAllDay: false, recurrence: null, createdAt: '2026-09-07T16:00:00Z' },
   { id: 'ev3', title: 'Weekly Team Standup', description: 'Monday standup', start: '2026-09-14T09:00:00Z', end: '2026-09-14T09:30:00Z', location: 'Slack Huddle', attendees: ['me@busyme.app'], color: '#f59e0b', isAllDay: false, recurrence: 'weekly', createdAt: '2026-08-01T09:00:00Z' },
@@ -101,27 +101,27 @@ const _events = [
   { id: 'ev5', title: 'Contract Deadline — David Kim', description: 'Must be signed today', start: '2026-09-12T00:00:00Z', end: '2026-09-12T23:59:00Z', location: null, attendees: ['me@busyme.app'], color: '#ef4444', isAllDay: true, recurrence: null, createdAt: '2026-09-09T07:00:00Z' },
 ];
 
-const _notes = [
+const _notes: MockNote[] = [
   { id: 'n1', title: 'Partnership proposal notes', content: '## Key points from Alice\'s proposal\n- Revenue share: 20/80\n- Integration timeline: 8 weeks\n- Pilot period: 3 months\n\nAction: request updated deck with legal addendum', tags: ['business', 'acme'], isPinned: true, createdAt: '2026-09-08T10:00:00Z', updatedAt: '2026-09-09T09:00:00Z' },
   { id: 'n2', title: 'Pricing page redesign ideas', content: 'Consider adding a comparison table. Highlight the Pro tier. Use social proof snippets near CTA.', tags: ['marketing', 'design'], isPinned: false, createdAt: '2026-09-07T14:00:00Z', updatedAt: '2026-09-07T14:00:00Z' },
   { id: 'n3', title: 'Meeting recap — roadmap session 9/5', content: 'Decisions made:\n1. Ship auth v2 in Oct\n2. Delay mobile app to Q1 2027\n3. Eva to lead EU launch campaign\n\nNext: schedule design review for auth v2', tags: ['product', 'meeting'], isPinned: false, createdAt: '2026-09-05T16:00:00Z', updatedAt: '2026-09-05T16:00:00Z' },
   { id: 'n4', title: 'Books to read — AI / productivity', content: '- Superintelligence — Bostrom\n- Deep Work — Newport\n- The Alignment Problem — Christian\n- Thinking in Systems — Meadows', tags: ['personal', 'reading'], isPinned: false, createdAt: '2026-08-20T20:00:00Z', updatedAt: '2026-09-01T18:00:00Z' },
 ];
 
-const _researchPacks = [
+const _researchPacks: MockResearchPack[] = [
   { id: 'rp1', title: 'AI Productivity Tools Landscape 2026', description: 'Competitive analysis of AI-first productivity apps', status: 'complete', sources: [{ url: 'https://example.com/ai-tools', title: 'AI Tools Report 2026', snippet: 'Over 200 new AI productivity apps launched in 2025…' }, { url: 'https://example.com/vc-funding', title: 'VC Funding in Productivity', snippet: '$4.2 billion invested in productivity AI last year…' }], summary: 'The AI productivity space is highly fragmented with three emerging leaders…', tags: ['ai', 'competition', 'research'], createdAt: '2026-08-15T09:00:00Z', updatedAt: '2026-09-01T14:00:00Z' },
   { id: 'rp2', title: 'APAC Market Expansion — Feasibility', description: 'Research into potential markets in APAC for Busy.me', status: 'in-progress', sources: [], summary: null, tags: ['market', 'expansion', 'apac'], createdAt: '2026-09-03T10:00:00Z', updatedAt: '2026-09-09T11:00:00Z' },
   { id: 'rp3', title: 'Zero-Knowledge Auth Approaches', description: 'Technical research on passkeys and ZK proofs for login', status: 'draft', sources: [], summary: null, tags: ['security', 'engineering', 'auth'], createdAt: '2026-09-08T16:00:00Z', updatedAt: '2026-09-08T16:00:00Z' },
 ];
 
-const _files = [
+const _files: MockFile[] = [
   { id: 'f1', name: 'Q3_Partnership_Deck.pdf', size: 2_450_000, type: 'application/pdf', url: '#', uploadedAt: '2026-09-08T09:30:00Z', tags: ['business'] },
   { id: 'f2', name: 'INV-2025-0044.pdf', size: 84_000, type: 'application/pdf', url: '#', uploadedAt: '2026-09-01T11:00:00Z', tags: ['finance'] },
   { id: 'f3', name: 'Product_Roadmap_Q4_2026.pptx', size: 5_120_000, type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', url: '#', uploadedAt: '2026-09-07T14:00:00Z', tags: ['product'] },
   { id: 'f4', name: 'Contract_DavidKim_Renewal.docx', size: 128_000, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', url: '#', uploadedAt: '2026-09-09T07:30:00Z', tags: ['legal'] },
 ];
 
-const _notifications = [
+const _notifications: MockNotification[] = [
   { id: 'notif1', type: 'task-due', title: 'Task due soon', body: '"Sign contract renewal with David Kim" is due in 2 days', read: false, createdAt: '2026-09-10T08:00:00Z', link: '/tasks/t5' },
   { id: 'notif2', type: 'email', title: 'New email from Alice Johnson', body: 'Follow-up: Q3 Partnership Proposal', read: false, createdAt: '2026-09-10T07:45:00Z', link: '/mail/email-1' },
   { id: 'notif3', type: 'event-reminder', title: 'Meeting in 30 minutes', body: 'Product Roadmap Review — Zoom', read: true, createdAt: '2026-09-11T13:30:00Z', link: '/calendar/ev1' },
@@ -140,15 +140,112 @@ const notifications = [..._notifications];
 
 // ---------------------------------------------------------------------------
 // Type exports
+//
+// These are declared explicitly rather than inferred with `(typeof seed)[number]`.
+// Inference produces a *union of each seed object's literal type*, so a field
+// that happens to be `null` in every seed row (e.g. `recurrence`) widens to
+// `null` instead of `string | null`, and callers passing a general value fail to
+// typecheck against every union member.
 // ---------------------------------------------------------------------------
-export type MockEmail = (typeof _emails)[number];
-export type MockTask = (typeof _tasks)[number];
-export type MockEvent = (typeof _events)[number];
-export type MockNote = (typeof _notes)[number];
+
+export interface MockAddress {
+  name: string | null;
+  email: string;
+}
+
+export interface MockEmail {
+  id: string;
+  subject: string;
+  from: MockAddress;
+  to: MockAddress[];
+  body: string;
+  snippet: string;
+  timestamp: string;
+  isRead: boolean;
+  isImportant: boolean;
+  isArchived: boolean;
+  hasAttachment: boolean;
+  labels: string[];
+  threadId: string;
+}
+
+export interface MockTask {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  dueDate: string | null;
+  assignee: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+}
+
+export interface MockEvent {
+  id: string;
+  title: string;
+  description: string;
+  start: string;
+  end: string;
+  location: string | null;
+  attendees: string[];
+  color: string;
+  isAllDay: boolean;
+  recurrence: string | null;
+  createdAt: string;
+}
+
+export interface MockNote {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type MockContact = (typeof MOCK_CONTACTS)[number];
-export type MockResearchPack = (typeof _researchPacks)[number];
-export type MockFile = (typeof _files)[number];
-export type MockNotification = (typeof _notifications)[number];
+
+export interface MockResearchPackSource {
+  url: string;
+  title: string;
+  snippet: string;
+}
+
+export interface MockResearchPack {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  sources: MockResearchPackSource[];
+  summary: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MockFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  uploadedAt: string;
+  tags: string[];
+}
+
+export interface MockNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+  link: string;
+}
 
 // ---------------------------------------------------------------------------
 // mockApi
@@ -211,7 +308,7 @@ export const mockApi = {
         result = result.filter(
           (e) =>
             e.subject.toLowerCase().includes(q) ||
-            e.from.name.toLowerCase().includes(q) ||
+            (e.from.name?.toLowerCase().includes(q) ?? false) ||
             e.snippet.toLowerCase().includes(q)
         );
       }
@@ -551,6 +648,13 @@ export const mockApi = {
       researchPacks[idx] = { ...researchPacks[idx], ...data, updatedAt: new Date().toISOString() };
       return researchPacks[idx];
     },
+
+    async delete(id: string): Promise<{ success: true }> {
+      await applyDelay();
+      guardError('researchPacks.delete');
+      researchPacks = researchPacks.filter((p) => p.id !== id);
+      return { success: true };
+    },
   },
 
   // -------------------------------------------------------------------------
@@ -728,7 +832,7 @@ export const mockApi = {
           .filter(
             (e) =>
               e.subject.toLowerCase().includes(q) ||
-              e.from.name.toLowerCase().includes(q) ||
+              (e.from.name?.toLowerCase().includes(q) ?? false) ||
               e.snippet.toLowerCase().includes(q)
           )
           .slice(0, 5),
