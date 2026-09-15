@@ -1,19 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ResearchPack, TimelineEntry, ResearchPackStatus } from '@/types/index';
+import type { ResearchPack, TimelineEntry } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
 // The richest pack seed in the repo: every pack carries real linked email /
 // task / event / note / contact / file ids, which the detail screen resolves
 // against the other stores.
-import { mockResearchPacks } from '@/data/mockResearchPacks';
+import { seededPacks } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface ResearchPackFilters {
-  status?: ResearchPackStatus | 'all';
-  tags?: string[];
+  /** Which slice of packs the list shows. */
+  view?: 'all' | 'recent';
   dateFrom?: string;
   dateTo?: string;
 }
@@ -49,12 +49,9 @@ function buildPack(input: Partial<ResearchPack>): ResearchPack {
   return {
     id: `pack-${Date.now()}`,
     title: input.title ?? 'Untitled Pack',
-    description: input.description ?? null,
-    status: input.status ?? 'active',
     priority: input.priority ?? 'medium',
     coverImageUrl: null,
     color: input.color ?? '#6366f1',
-    tags: input.tags ?? [],
     linkedContactIds: input.linkedContactIds ?? [],
     linkedEmailIds: input.linkedEmailIds ?? [],
     linkedEventIds: input.linkedEventIds ?? [],
@@ -87,7 +84,7 @@ export const useResearchPackStore = create<ResearchPackStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      packs: mockResearchPacks,
+      packs: seededPacks,
       isLoading: false,
       selectedPack: null,
       filters: { status: 'all' },
@@ -111,8 +108,8 @@ export const useResearchPackStore = create<ResearchPackStore>()(
         try {
           await mockApi.researchPacks.create({
             title: pack.title,
-            description: pack.description ?? '',
-            tags: pack.tags,
+            description: '',
+            tags: [],
           });
         } catch {
           set((s) => ({ packs: s.packs.filter((p) => p.id !== pack.id) }));

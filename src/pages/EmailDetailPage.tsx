@@ -40,7 +40,7 @@ import { useEmailStore } from '@/store/emailStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useUIStore } from '@/store/uiStore';
-import { cn, formatFileSize, sleep } from '@/lib/utils';
+import { cn, formatFileSize, formatRelativeTime, sleep } from '@/lib/utils';
 
 // =============================================================================
 // Body rendering
@@ -787,7 +787,7 @@ export default function EmailDetailPage() {
                 label={pack.title}
                 description={`${pack.timeline.length} item${
                   pack.timeline.length === 1 ? '' : 's'
-                } · ${pack.status}`}
+                } · updated ${formatRelativeTime(pack.updatedAt)}`}
                 onClick={() => handleAddToPack(pack.id, pack.title)}
               />
             ))}

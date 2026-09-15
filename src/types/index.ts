@@ -472,7 +472,6 @@ export interface Contact {
 // Research Packs (the core "Ongoing" object)
 // -----------------------------------------------------------------------------
 
-export type ResearchPackStatus = 'active' | 'completed' | 'archived' | 'paused';
 
 export type TimelineEntryType =
   | 'email'
@@ -507,13 +506,10 @@ export interface TimelineEntry {
 export interface ResearchPack {
   id: string;
   title: string;
-  description: string | null;
-  status: ResearchPackStatus;
   /** How urgent the pack is. Absent on legacy packs — treat as `medium`. */
   priority?: TaskPriority;
   coverImageUrl: string | null;
   color: string; // hex color
-  tags: string[];
   linkedContactIds: string[];
   linkedEmailIds: string[];
   linkedEventIds: string[];

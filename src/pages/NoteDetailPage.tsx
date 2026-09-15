@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useNoteStore } from '@/store/noteStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useUIStore } from '@/store/uiStore';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, formatRelativeTime } from '@/lib/utils';
 import * as t from '@/lib/theme';
 
 // =============================================================================
@@ -323,7 +323,7 @@ export default function NoteDetailPage() {
                 <span className="block truncate text-sm font-medium text-gray-900">
                   {linkedPack.title}
                 </span>
-                <span className={cn(t.meta, 'block')}>{linkedPack.status}</span>
+                <span className={cn(t.meta, 'block')}>updated {formatRelativeTime(linkedPack.updatedAt)}</span>
               </span>
             </Link>
           </div>

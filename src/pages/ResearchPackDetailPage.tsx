@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Archive, Layers, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Layers, MoreHorizontal, Trash2 } from 'lucide-react';
 import type { ResearchPack } from '@/types/index';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSkeleton } from '@/components/ui/LoadingState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { ResearchPackStatusBadge } from '@/components/ui/StatusBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState as Empty } from '@/components/ui/EmptyState';
 import { ContactCard } from '@/components/contacts/ContactCard';
@@ -18,7 +17,6 @@ import { PackTimeline } from '@/components/research-pack/PackTimeline';
 import { PackEmails } from '@/components/research-pack/PackEmails';
 import { PackTasks } from '@/components/research-pack/PackTasks';
 import { PackFiles } from '@/components/research-pack/PackFiles';
-import { PackTagList } from '@/components/research-pack/PackSection';
 import { usePackLinks } from '@/components/research-pack/packLinks';
 import { EventCard } from '@/components/events/EventCard';
 import { useResearchPackStore } from '@/store/researchPackStore';
@@ -113,12 +111,6 @@ export default function ResearchPackDetailPage() {
     );
   }
 
-  async function handleArchive() {
-    setMenuOpen(false);
-    await updatePack(pack!.id, { status: 'archived' });
-    addToast({ variant: 'success', title: 'Pack archived' });
-  }
-
   async function handleDelete() {
     setConfirmDelete(false);
     await deletePack(pack!.id);
@@ -158,17 +150,6 @@ export default function ResearchPackDetailPage() {
         <div className={cn(t.hairline, 'border-b bg-white px-4 py-2')}>
           <button
             type="button"
-            onClick={handleArchive}
-            className={cn(
-              'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-gray-700',
-              t.pressable,
-            )}
-          >
-            <Archive className="h-4 w-4" />
-            Archive pack
-          </button>
-          <button
-            type="button"
             onClick={() => {
               setMenuOpen(false);
               setConfirmDelete(true);
@@ -187,15 +168,9 @@ export default function ResearchPackDetailPage() {
       {/* Header block */}
       <div className={cn(t.hairline, 'flex-shrink-0 border-b bg-white px-4 pb-3 pt-1')}>
         <div className="flex items-center gap-2">
-          <ResearchPackStatusBadge status={pack.status} size="sm" />
           <span className={t.meta}>Updated {formatRelativeTime(pack.updatedAt)}</span>
         </div>
 
-        {pack.description && (
-          <p className={cn(t.body, 'mt-2 leading-relaxed')}>{pack.description}</p>
-        )}
-
-        <PackTagList tags={pack.tags} className="mt-2.5" />
 
         <p className={cn(t.meta, 'mt-2.5')}>Created {formatDate(pack.createdAt)}</p>
       </div>

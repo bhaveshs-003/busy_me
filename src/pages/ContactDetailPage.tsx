@@ -535,12 +535,10 @@ export default function ContactDetailPage() {
                           aria-hidden="true"
                           className={cn(
                             'h-1.5 w-1.5 rounded-full',
-                            pack.status === 'active'
-                              ? t.statusDot.success
-                              : t.statusDot.neutral,
+                            t.statusDot.neutral,
                           )}
                         />
-                        <span className={cn('capitalize', t.meta)}>{pack.status}</span>
+                        <span className={t.meta}>updated {formatRelativeTime(pack.updatedAt)}</span>
                       </span>
                     </span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" aria-hidden="true" />

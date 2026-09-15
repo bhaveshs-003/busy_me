@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Contact } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
-import { mockContacts } from '@/data/contacts';
+import { seededContacts } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,7 +82,7 @@ export const useContactStore = create<ContactStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      contacts: mockContacts,
+      contacts: seededContacts,
       isLoading: false,
       selectedContact: null,
       searchQuery: '',

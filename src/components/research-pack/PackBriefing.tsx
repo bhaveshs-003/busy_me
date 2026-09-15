@@ -107,9 +107,6 @@ export function PackBriefing({ pack, links }: PackBriefingProps) {
     if (pack.dueDate && isOverdue(pack.dueDate, now)) {
       risks.push(`The pack itself passed its target date of ${formatDate(pack.dueDate)}.`);
     }
-    if (pack.status === 'paused') {
-      risks.push('This pack is paused — activity will not be picked up automatically.');
-    }
     const waiting = openTasks.filter((task) => Boolean(task.waitingOn));
     if (waiting.length > 0) {
       risks.push(

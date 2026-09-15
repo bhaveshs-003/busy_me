@@ -26,7 +26,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useContactStore } from '@/store/contactStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useUIStore } from '@/store/uiStore';
-import { cn, formatDate, formatFileSize, generateId } from '@/lib/utils';
+import { cn, formatDate, formatFileSize, formatRelativeTime, generateId } from '@/lib/utils';
 
 // =============================================================================
 // Helpers
@@ -537,8 +537,8 @@ export default function TaskDetailPage() {
                   <span className="block truncate text-sm font-medium text-gray-800">
                     {linkedPack.title}
                   </span>
-                  <span className="block text-xs capitalize text-gray-400">
-                    {linkedPack.status}
+                  <span className="block text-xs text-gray-400">
+                    updated {formatRelativeTime(linkedPack.updatedAt)}
                   </span>
                 </span>
               </Link>

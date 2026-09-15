@@ -223,7 +223,7 @@ export function attachmentVisual(mimeType: string, filename = ''): AttachmentVis
   if (mimeType.includes('zip') || mimeType.includes('compressed')) {
     return {
       Icon: FileArchive,
-      tone: 'bg-gray-100 text-gray-600 ring-gray-200',
+      tone: 'bg-gray-100 text-gray-600 ring-gray-100',
       label: extension || 'Archive',
     };
   }
@@ -234,7 +234,7 @@ export function attachmentVisual(mimeType: string, filename = ''): AttachmentVis
       label: extension || 'Doc',
     };
   }
-  return { Icon: FileIcon, tone: 'bg-gray-100 text-gray-600 ring-gray-200', label: extension || 'File' };
+  return { Icon: FileIcon, tone: 'bg-gray-100 text-gray-600 ring-gray-100', label: extension || 'File' };
 }
 
 // ---------------------------------------------------------------------------

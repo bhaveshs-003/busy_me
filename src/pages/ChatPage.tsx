@@ -678,7 +678,7 @@ export default function ChatPage() {
         />
 
         {searchPanel.open && (
-          <div className="bottom-sheet-panel absolute inset-x-0 bottom-0 z-20 h-[62%] overflow-hidden rounded-t-2xl border-t border-gray-100 bg-gray-50 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
+          <div className="bottom-sheet-panel absolute inset-x-0 bottom-0 z-20 h-[62%] overflow-hidden rounded-t-2xl border-t border-gray-100 bg-gray-50">
             <WebSearchResults
               results={searchPanel.results}
               query={searchPanel.query || null}

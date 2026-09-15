@@ -1,4 +1,4 @@
-import type { ConnectorStatus, ResearchPackStatus, TaskStatus } from '@/types';
+import type { ConnectorStatus, TaskStatus } from '@/types';
 import { Badge } from './Badge';
 import type { BadgeColor, BadgeSize } from './Badge';
 
@@ -7,7 +7,7 @@ import type { BadgeColor, BadgeSize } from './Badge';
 // =============================================================================
 
 /** Every status this component can render, across entity types. */
-export type EntityStatus = ConnectorStatus | TaskStatus | ResearchPackStatus;
+export type EntityStatus = ConnectorStatus | TaskStatus;
 
 interface StatusConfig {
   label: string;
@@ -35,10 +35,6 @@ const statusConfig: Record<EntityStatus, StatusConfig> = {
   completed: { label: 'Completed', color: 'green', dot: true },
   overdue: { label: 'Overdue', color: 'red', dot: true },
 
-  // Research pack
-  active: { label: 'Active', color: 'orange', dot: true },
-  archived: { label: 'Archived', color: 'gray', dot: true },
-  paused: { label: 'Paused', color: 'yellow', dot: true },
 };
 
 const fallbackConfig: StatusConfig = { label: 'Unknown', color: 'gray', dot: true };
@@ -84,12 +80,6 @@ export function ConnectorStatusBadge(props: ScopedStatusBadgeProps<ConnectorStat
 }
 
 export function TaskStatusBadge(props: ScopedStatusBadgeProps<TaskStatus>) {
-  return <StatusBadge {...props} />;
-}
-
-export function ResearchPackStatusBadge(
-  props: ScopedStatusBadgeProps<ResearchPackStatus>,
-) {
   return <StatusBadge {...props} />;
 }
 

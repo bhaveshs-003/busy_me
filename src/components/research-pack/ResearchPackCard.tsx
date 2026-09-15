@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { KeyboardEvent } from 'react';
-import type { ResearchPack, ResearchPackStatus } from '@/types/index';
-import { ResearchPackStatusBadge } from '@/components/ui/StatusBadge';
+import type { ResearchPack } from '@/types/index';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import * as t from '@/lib/theme';
 import { formatPackCounts, usePackLinks } from './packLinks';
@@ -17,25 +16,14 @@ export interface ResearchPackCardProps {
   className?: string;
 }
 
-/** Status is carried by a small dot, never a filled chip. */
-const statusDotFor: Record<ResearchPackStatus, string> = {
-  active: t.statusDot.active,
-  completed: t.statusDot.success,
-  paused: t.statusDot.warning,
-  archived: t.statusDot.neutral,
-};
-
-/** Tags beyond this count collapse into a `+N` chip. */
-const MAX_TAGS = 3;
-
 export function ResearchPackCard({ pack, onClick, className }: ResearchPackCardProps) {
   const navigate = useNavigate();
   const links = usePackLinks(pack);
 
   const counts = formatPackCounts(links);
-  const visibleTags = pack.tags.slice(0, MAX_TAGS);
-  const hiddenTagCount = pack.tags.length - visibleTags.length;
-  const updatedAt = pack.lastActivityAt ?? pack.updatedAt;
+  // `lastActivityAt` can be in the future (scheduled work), and "Updated in
+  // 2 weeks" reads as a bug — so the label uses the backward-looking field.
+  const updatedAt = pack.updatedAt;
 
   const open = () => {
     if (onClick) onClick(pack);
@@ -69,45 +57,17 @@ export function ResearchPackCard({ pack, onClick, className }: ResearchPackCardP
       <div className="flex items-start gap-2.5">
         <span
           aria-hidden="true"
-          className={cn('mt-[7px] h-2 w-2 shrink-0 rounded-full', statusDotFor[pack.status])}
+          className={cn('mt-[7px] h-2 w-2 shrink-0 rounded-full', t.statusDot.neutral)}
         />
         <h3 className={cn('min-w-0 flex-1 leading-snug', t.title)}>{pack.title}</h3>
       </div>
 
-      {/* ── Description ────────────────────────────────────────────────── */}
-      {pack.description && (
-        <p className={cn('mt-1.5 truncate pl-[18px]', t.body)}>{pack.description}</p>
-      )}
-
-      {/* ── Status + updated ───────────────────────────────────────────── */}
+      {/* ── Updated ────────────────────────────────────────────────────── */}
       <div className="mt-2.5 flex items-center gap-2 pl-[18px]">
-        <ResearchPackStatusBadge status={pack.status} size="sm" dot={false} />
-        <span aria-hidden="true" className={t.meta}>
-          ·
-        </span>
         <time dateTime={updatedAt} className={t.meta}>
           Updated {formatRelativeTime(updatedAt)}
         </time>
       </div>
-
-      {/* ── Tags ───────────────────────────────────────────────────────── */}
-      {visibleTags.length > 0 && (
-        <ul className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-[18px]">
-          {visibleTags.map((tag) => (
-            <li
-              key={tag}
-              className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium leading-none text-gray-500"
-            >
-              {tag}
-            </li>
-          ))}
-          {hiddenTagCount > 0 && (
-            <li className={cn('text-[11px] font-medium leading-none', t.meta)}>
-              +{hiddenTagCount}
-            </li>
-          )}
-        </ul>
-      )}
 
       {/* ── Linked counts ──────────────────────────────────────────────── */}
       {counts && (

@@ -51,7 +51,7 @@ const typeConfig: Record<TimelineEntryType, TypeConfig> = {
   'web-search': {
     label: 'Web search',
     icon: Globe,
-    node: 'bg-gray-100 text-gray-600 ring-gray-200',
+    node: 'bg-gray-100 text-gray-600 ring-gray-100',
   },
   'ai-summary': {
     label: 'AI summary',
@@ -78,7 +78,7 @@ const typeConfig: Record<TimelineEntryType, TypeConfig> = {
 const fallbackConfig: TypeConfig = {
   label: 'Update',
   icon: Circle,
-  node: 'bg-gray-100 text-gray-500 ring-gray-200',
+  node: 'bg-gray-100 text-gray-500 ring-gray-100',
 };
 
 export function TimelineItem({

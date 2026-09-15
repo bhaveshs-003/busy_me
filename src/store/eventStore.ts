@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CalendarEvent, CalendarAccount } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
-import { mockEvents, mockCalendarAccounts } from '@/data/events';
+import { mockCalendarAccounts } from '@/data/events';
+import { seededEvents } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -74,7 +75,7 @@ export const useEventStore = create<EventStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      events: mockEvents,
+      events: seededEvents,
       isLoading: false,
       selectedDate: new Date().toISOString().slice(0, 10),
       selectedEvent: null,

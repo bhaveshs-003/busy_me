@@ -9,7 +9,8 @@ import type {
   EmailWaitingOn,
 } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
-import { seedDrafts, seedEmails, mailboxOwner } from '@/data/emailSeed';
+import { seedDrafts, mailboxOwner } from '@/data/emailSeed';
+import { seededEmails } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -250,10 +251,10 @@ export const useEmailStore = create<EmailStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      emails: seedEmails,
+      emails: seededEmails,
       drafts: seedDrafts,
       isLoading: false,
-      hasMore: seedEmails.length > PAGE_SIZE,
+      hasMore: seededEmails.length > PAGE_SIZE,
       page: 1,
       searchQuery: '',
       filters: DEFAULT_FILTERS,
@@ -522,7 +523,7 @@ export const useEmailStore = create<EmailStore>()(
       // are replaced rather than merged so new fields are never missing.
       version: 2,
       migrate: (persisted, version) => {
-        const fresh = { emails: seedEmails, drafts: seedDrafts, filters: DEFAULT_FILTERS };
+        const fresh = { emails: seededEmails, drafts: seedDrafts, filters: DEFAULT_FILTERS };
         if (version < 2) return fresh;
         return (persisted as typeof fresh | undefined) ?? fresh;
       },

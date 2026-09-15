@@ -154,8 +154,6 @@ export function SuggestedActions({
           }
           const pack = await createPack({
             title: str(payload, 'title') ?? 'Research Pack from chat',
-            description: str(payload, 'query') ?? 'Started from a Busy.me conversation',
-            tags: ['chat'],
           });
           setDoneIds((d) => [...d, action.id]);
           addToast({

@@ -8,7 +8,7 @@ import type {
   TaskViewFilter,
 } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
-import { mockTasks } from '@/data/tasks';
+import { seededTasks } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,7 +92,7 @@ export const useTaskStore = create<TaskStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      tasks: mockTasks,
+      tasks: seededTasks,
       isLoading: false,
       filters: DEFAULT_FILTERS,
       selectedTask: null,

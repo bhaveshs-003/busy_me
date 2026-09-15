@@ -23,7 +23,6 @@ export {
   StatusBadge,
   ConnectorStatusBadge,
   TaskStatusBadge,
-  ResearchPackStatusBadge,
 } from './StatusBadge';
 export type { StatusBadgeProps, EntityStatus } from './StatusBadge';
 

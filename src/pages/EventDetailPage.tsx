@@ -27,7 +27,7 @@ import {
 import { useEventStore } from '@/store/eventStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useUIStore } from '@/store/uiStore';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, formatRelativeTime } from '@/lib/utils';
 
 // =============================================================================
 // Helpers
@@ -549,8 +549,8 @@ export default function EventDetailPage() {
                   <span className="block truncate text-sm font-medium text-gray-800">
                     {linkedPack.title}
                   </span>
-                  <span className="block text-xs capitalize text-gray-400">
-                    {linkedPack.status}
+                  <span className="block text-xs text-gray-400">
+                    updated {formatRelativeTime(linkedPack.updatedAt)}
                   </span>
                 </span>
               </button>

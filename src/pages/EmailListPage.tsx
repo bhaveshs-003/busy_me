@@ -10,7 +10,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { ListSkeleton } from '@/components/ui/LoadingState';
 import { EmailCard } from '@/components/email/EmailCard';
-import { EmailSummaryStats } from '@/components/email/EmailSummaryStats';
 import { ComposeEmail } from '@/components/email/ComposeEmail';
 import {
   EMAIL_PAGE_SIZE,
@@ -26,8 +25,8 @@ import { cn } from '@/lib/utils';
 // =============================================================================
 // Quick filters
 //
-// The FilterBar and the summary strip both drive the same `EmailViewFilter`,
-// which is stored as the matching combination of store-level email filters.
+// The FilterBar drives an `EmailViewFilter`, which is stored as the matching
+// combination of store-level email filters.
 // =============================================================================
 
 const FILTERS: { id: EmailViewFilter; label: string; icon?: React.ReactNode }[] = [
@@ -243,15 +242,8 @@ export default function EmailListPage() {
         }
       />
 
-      {/* ── Stats + search + filters ────────────────────────────────────── */}
+      {/* ── Search + filters ────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-b border-gray-100 bg-white px-4 pb-3 pt-2">
-        <EmailSummaryStats
-          stats={stats}
-          active={activeFilter}
-          onSelect={handleSelectFilter}
-          className="mb-3"
-        />
-
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}

@@ -282,7 +282,7 @@ function RecipientField({
   return (
     <div className="relative border-b border-gray-100">
       <div className="flex items-start gap-2 px-4 py-2">
-        <span className="w-11 shrink-0 pt-1.5 text-xs font-medium uppercase tracking-wide text-gray-400">
+        <span className="w-16 shrink-0 pt-1.5 text-xs font-medium uppercase tracking-wide text-gray-400">
           {label}
         </span>
 
@@ -334,7 +334,7 @@ function RecipientField({
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 px-4 pb-1.5 pl-[3.75rem] text-xs text-red-600">
+        <p className="flex items-center gap-1 px-4 pb-1.5 pl-[5rem] text-xs text-red-600">
           <AlertCircle className="h-3 w-3" />
           {error}
         </p>
@@ -344,7 +344,9 @@ function RecipientField({
         <ul
           role="listbox"
           aria-label={`${label} suggestions`}
-          className="absolute left-14 right-4 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-100 bg-white py-1"
+          /* left-20 = the w-16 label gutter plus the row's px-4 padding, so the
+             menu lines up with the input rather than the label. */
+          className="absolute left-20 right-4 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-100 bg-white py-1"
         >
           {matches.map((match, index) => (
             <li key={match.address.email}>
@@ -678,11 +680,11 @@ export function ComposeEmail({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* From */}
         <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
-          <span className="w-11 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-400">
+          <span className="w-16 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-400">
             From
           </span>
           <Avatar name={displayName(mailboxOwner)} size="xs" />
-          <span className="truncate text-sm text-gray-700">
+          <span className="min-w-0 truncate text-sm text-gray-700">
             {displayName(mailboxOwner)}{' '}
             <span className="text-gray-400">&lt;{mailboxOwner.email}&gt;</span>
           </span>
@@ -771,7 +773,7 @@ export function ComposeEmail({
           <div className="flex items-center gap-2 px-4 py-2">
             <label
               htmlFor="compose-subject"
-              className="w-11 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-400"
+              className="w-16 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-400"
             >
               Subject
             </label>
@@ -785,7 +787,7 @@ export function ComposeEmail({
             />
           </div>
           {errors.subject && (
-            <p className="flex items-center gap-1 px-4 pb-1.5 pl-[3.75rem] text-xs text-red-600">
+            <p className="flex items-center gap-1 px-4 pb-1.5 pl-[5rem] text-xs text-red-600">
               <AlertCircle className="h-3 w-3" />
               {errors.subject}
             </p>
@@ -1069,7 +1071,10 @@ export function ComposeEmail({
 
   return (
     <BottomSheet open={open} onClose={onClose} title={title}>
-      <div className="h-[80vh]">{content}</div>
+      {/* The sheet caps itself at 85vh and spends ~10vh of that on its drag
+          handle and title bar. An 80vh body therefore overflowed the panel and
+          pushed the Send/Cancel footer outside it. */}
+      <div className="h-[72vh]">{content}</div>
     </BottomSheet>
   );
 }

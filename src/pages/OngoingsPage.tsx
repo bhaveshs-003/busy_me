@@ -16,7 +16,6 @@ import type {
   Email,
   Note,
   ResearchPack,
-  ResearchPackStatus,
   Task,
 } from '@/types/index';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -38,6 +37,7 @@ import { useContactStore } from '@/store/contactStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useUIStore } from '@/store/uiStore';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { isRecent, isUpcoming, isWithinWindow } from '@/lib/dateWindow';
 import * as t from '@/lib/theme';
 
 // =============================================================================
@@ -96,21 +96,6 @@ const CATEGORY_NOUN: Record<CategoryId, [string, string]> = {
 // recency. The sorts run over shallow copies so store arrays stay untouched.
 // =============================================================================
 
-/** Sort weight for a pack — live work first, finished work last. */
-const PACK_STATUS_WEIGHT: Record<ResearchPackStatus, number> = {
-  active: 0,
-  paused: 1,
-  completed: 2,
-  archived: 3,
-};
-
-const PACK_STATUS_LABEL: Record<ResearchPackStatus, string> = {
-  active: 'Active',
-  paused: 'Paused',
-  completed: 'Completed',
-  archived: 'Archived',
-};
-
 /** Packs whose last activity is inside this window read as "live". */
 const PACK_PULSE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -131,17 +116,13 @@ function packItemCount(pack: ResearchPack): number {
 }
 
 function isPackLive(pack: ResearchPack, now: number): boolean {
-  if (pack.status !== 'active') return false;
   if (!pack.lastActivityAt) return false;
   const last = Date.parse(pack.lastActivityAt);
   return !Number.isNaN(last) && now - last < PACK_PULSE_WINDOW_MS;
 }
 
 function sortPacks(packs: ResearchPack[]): ResearchPack[] {
-  return [...packs].sort((a, b) => {
-    const delta = PACK_STATUS_WEIGHT[a.status] - PACK_STATUS_WEIGHT[b.status];
-    return delta !== 0 ? delta : packTimestamp(b) - packTimestamp(a);
-  });
+  return [...packs].sort((a, b) => packTimestamp(b) - packTimestamp(a));
 }
 
 /** Unread first, then important, then newest. */
@@ -242,7 +223,7 @@ function PackRow({
   onOpen: (pack: ResearchPack) => void;
 }) {
   const itemCount = packItemCount(pack);
-  const dotTone = pack.status === 'active' ? t.statusDot.active : t.statusDot.neutral;
+  const dotTone = isLive ? t.statusDot.active : t.statusDot.neutral;
 
   return (
     <button type="button" onClick={() => onOpen(pack)} className={rowClass}>
@@ -256,11 +237,12 @@ function PackRow({
       <span className="min-w-0 flex-1">
         <span className={cn('block truncate', t.title)}>{pack.title}</span>
         <span className={cn('mt-0.5 block truncate', t.meta)}>
-          {PACK_STATUS_LABEL[pack.status]}
-          {' · '}
           {itemCount} {itemCount === 1 ? 'item' : 'items'}
           {' · '}
-          {formatRelativeTime(pack.lastActivityAt ?? pack.updatedAt)}
+          {/* A pack can carry a future `lastActivityAt` (scheduled work), and
+              "updated in 2 weeks" reads as a bug — so the label always uses the
+              backward-looking `updatedAt`. Sorting still uses lastActivityAt. */}
+          updated {formatRelativeTime(pack.updatedAt)}
         </span>
       </span>
 
@@ -382,24 +364,81 @@ export default function OngoingsPage() {
   // Captured once per render so every row is ranked against the same instant.
   const now = useMemo(() => Date.now(), []);
 
-  // ── Ordered, unfiltered pools (drive the chip counts) ────────────────────
+  // ── This-week pools (drive the chip counts) ──────────────────────────────
+  //
+  // Ongoings is a digest of what is live right now, so every category is cut to
+  // a rolling 7-day window. Things that already happened look backwards; things
+  // that are scheduled look forwards.
   const orderedPacks = useMemo(
-    () => sortPacks(packs.filter((pack) => pack.status !== 'archived')),
-    [packs],
+    () =>
+      sortPacks(
+        packs.filter((pack) => isWithinWindow(pack.lastActivityAt ?? pack.updatedAt, now)),
+      ),
+    [packs, now],
   );
+
   const orderedEmails = useMemo(
-    () => sortEmails(selectFolderEmails(emails, 'inbox')),
-    [emails],
+    () =>
+      sortEmails(
+        selectFolderEmails(emails, 'inbox').filter((email) => isRecent(email.date, now)),
+      ),
+    [emails, now],
   );
-  const orderedTasks = useMemo(() => sortTasks(tasks, now), [tasks, now]);
-  const orderedEvents = useMemo(() => sortEvents(events, now), [events, now]);
+
+  // Overdue work stays visible however old it is — a digest that hides what you
+  // have already missed is worse than useless.
+  const orderedTasks = useMemo(
+    () =>
+      sortTasks(
+        tasks.filter(
+          (task) =>
+            isUpcoming(task.dueDate, now) ||
+            (task.status !== 'completed' && isTaskOverdue(task, now)),
+        ),
+        now,
+      ),
+    [tasks, now],
+  );
+
+  const orderedEvents = useMemo(
+    () => sortEvents(events.filter((event) => isUpcoming(event.startAt, now)), now),
+    [events, now],
+  );
+
   const orderedNotes = useMemo(
-    () => sortNotes(notes.filter((note) => !note.isArchived)),
-    [notes],
+    () =>
+      sortNotes(
+        notes.filter((note) => !note.isArchived && isRecent(note.updatedAt, now)),
+      ),
+    [notes, now],
   );
+
+  // Contacts have no timestamp of their own that means "this week", so the set
+  // is derived: anyone on an in-window email or event, plus anyone the contact
+  // record itself says was contacted recently.
+  const activeAddresses = useMemo(() => {
+    const set = new Set<string>();
+    for (const email of orderedEmails) {
+      set.add(email.from.email.toLowerCase());
+      for (const to of email.to) set.add(to.email.toLowerCase());
+    }
+    for (const event of orderedEvents) {
+      for (const attendee of event.attendees) set.add(attendee.email.toLowerCase());
+    }
+    return set;
+  }, [orderedEmails, orderedEvents]);
+
   const orderedContacts = useMemo(
-    () => sortContacts(contacts.filter((contact) => !contact.isBlocked)),
-    [contacts],
+    () =>
+      sortContacts(
+        contacts.filter(
+          (contact) =>
+            !contact.isBlocked &&
+            (isRecent(contact.lastContactedAt, now) ||
+              contact.emails.some((entry) => activeAddresses.has(entry.email.toLowerCase()))),
+        ),
+      ),
+    [contacts, activeAddresses, now],
   );
 
   const counts: Record<CategoryId, number> = useMemo(
@@ -416,7 +455,7 @@ export default function OngoingsPage() {
 
   // ── Search applied within the active category ────────────────────────────
   const visiblePacks = useMemo(
-    () => orderedPacks.filter((p) => matches(query, p.title, p.description, p.tags.join(' '))),
+    () => orderedPacks.filter((p) => matches(query, p.title)),
     [orderedPacks, query],
   );
   const visibleEmails = useMemo(
@@ -489,39 +528,39 @@ export default function OngoingsPage() {
     { title: string; description: string; actionLabel: string; onAction: () => void }
   > = {
     packs: {
-      title: 'No research packs yet',
-      description: 'A research pack collects the emails, notes and people behind one thread of work.',
-      actionLabel: 'Start a pack',
+      title: 'No packs active this week',
+      description: 'Nothing has moved in the last 7 days. Open all packs to see the rest.',
+      actionLabel: 'View all packs',
       onAction: () => navigate('/research-packs'),
     },
     emails: {
-      title: 'Inbox is clear',
-      description: 'Nothing is waiting on a reply. New mail lands here as it arrives.',
+      title: 'No mail this week',
+      description: 'Nothing has arrived in the last 7 days. Your full inbox is still there.',
       actionLabel: 'Open inbox',
       onAction: () => navigate('/emails'),
     },
     tasks: {
-      title: 'No tasks here',
-      description: 'Capture the next thing you owe someone and it will show up in this list.',
-      actionLabel: 'New task',
+      title: 'Nothing due this week',
+      description: 'No tasks are due in the next 7 days and nothing is overdue.',
+      actionLabel: 'View all tasks',
       onAction: () => navigate('/tasks'),
     },
     events: {
-      title: 'Nothing scheduled',
-      description: 'Your calendar is clear. Upcoming meetings and deadlines appear here first.',
+      title: 'Nothing scheduled this week',
+      description: 'Your next 7 days are clear.',
       actionLabel: 'Open calendar',
       onAction: () => navigate('/calendar'),
     },
     notes: {
-      title: 'No notes yet',
-      description: 'Jot down what came out of a call and it stays attached to the work it belongs to.',
-      actionLabel: 'New note',
+      title: 'No notes this week',
+      description: 'Nothing has been written or edited in the last 7 days.',
+      actionLabel: 'View all notes',
       onAction: () => navigate('/notes'),
     },
     contacts: {
-      title: 'No contacts yet',
-      description: 'Import or add the people you work with to see their threads in one place.',
-      actionLabel: 'Add contact',
+      title: 'No one in touch this week',
+      description: 'Nobody has appeared on your mail or calendar in the last 7 days.',
+      actionLabel: 'View all contacts',
       onAction: () => navigate('/contacts'),
     },
   };
@@ -642,7 +681,7 @@ export default function OngoingsPage() {
     <div className="flex h-full flex-col bg-gray-50">
       <PageHeader
         title="Ongoings"
-        subtitle={`${total} ${total === 1 ? singular : plural}`}
+        subtitle={`${total} ${total === 1 ? singular : plural} this week`}
         rightActions={
           <Button
             iconOnly

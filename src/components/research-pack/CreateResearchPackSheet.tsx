@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type {
   ResearchPack,
-  ResearchPackStatus,
   TaskPriority,
 } from '@/types/index';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -27,15 +26,7 @@ export interface CreateResearchPackSheetProps {
   onSaved?: (pack: ResearchPack) => void;
 }
 
-const STATUSES: ResearchPackStatus[] = ['active', 'paused', 'completed', 'archived'];
 const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
-
-const STATUS_LABEL: Record<ResearchPackStatus, string> = {
-  active: 'Active',
-  paused: 'Paused',
-  completed: 'Completed',
-  archived: 'Archived',
-};
 
 const fieldLabel = 'text-sm font-medium text-gray-700';
 
@@ -45,14 +36,6 @@ const selectClass = cn(
   t.radius,
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
 );
-
-/** Trailing commas let people paste a comma-separated list in one go. */
-function splitTags(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((tag) => tag.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export function CreateResearchPackSheet({
   open,
@@ -67,11 +50,7 @@ export function CreateResearchPackSheet({
   const isEditing = Boolean(pack);
 
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<ResearchPackStatus>('active');
   const [priority, setPriority] = useState<TaskPriority>('medium');
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagDraft, setTagDraft] = useState('');
   const [nameError, setNameError] = useState<string | undefined>();
   const [isSaving, setSaving] = useState(false);
 
@@ -80,25 +59,10 @@ export function CreateResearchPackSheet({
   useEffect(() => {
     if (!open) return;
     setName(pack?.title ?? '');
-    setDescription(pack?.description ?? '');
-    setStatus(pack?.status ?? 'active');
     setPriority(pack ? packPriority(pack) : 'medium');
-    setTags(pack?.tags ?? []);
-    setTagDraft('');
     setNameError(undefined);
     setSaving(false);
   }, [open, pack]);
-
-  const addTags = () => {
-    const parsed = splitTags(tagDraft);
-    if (parsed.length === 0) return;
-    setTags((prev) => [...prev, ...parsed.filter((tag) => !prev.includes(tag))]);
-    setTagDraft('');
-  };
-
-  const removeTag = (tag: string) => {
-    setTags((prev) => prev.filter((value) => value !== tag));
-  };
 
   const handleSubmit = async () => {
     const trimmedName = name.trim();
@@ -108,17 +72,13 @@ export function CreateResearchPackSheet({
     }
 
     // Anything still sitting in the tag field counts as entered.
-    const allTags = [...tags, ...splitTags(tagDraft).filter((tag) => !tags.includes(tag))];
 
     setSaving(true);
     try {
       if (pack) {
         const patch = {
           title: trimmedName,
-          description: description.trim() || null,
-          status,
           priority,
-          tags: allTags,
         };
         await updatePack(pack.id, patch);
         addToast({ variant: 'success', title: 'Pack updated', message: trimmedName });
@@ -126,10 +86,7 @@ export function CreateResearchPackSheet({
       } else {
         const created = await createPack({
           title: trimmedName,
-          description: description.trim() || null,
-          status,
           priority,
-          tags: allTags,
         });
         addToast({ variant: 'success', title: 'Pack created', message: created.title });
         onSaved?.(created);
@@ -167,44 +124,6 @@ export function CreateResearchPackSheet({
           }}
         />
 
-        {/* ── Description ───────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="pack-description">
-            Description
-          </label>
-          <textarea
-            id="pack-description"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="A sentence on what this pack is for…"
-            className={cn(
-              'w-full resize-y bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400',
-              t.border,
-              t.radius,
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-            )}
-          />
-        </div>
-
-        {/* ── Status ────────────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="pack-status">
-            Status
-          </label>
-          <select
-            id="pack-status"
-            className={selectClass}
-            value={status}
-            onChange={(e) => setStatus(e.target.value as ResearchPackStatus)}
-          >
-            {STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {STATUS_LABEL[value]}
-              </option>
-            ))}
-          </select>
-        </div>
 
         {/* ── Priority ──────────────────────────────────────────────────── */}
         <div className="flex flex-col gap-1.5">
@@ -236,61 +155,6 @@ export function CreateResearchPackSheet({
           </div>
         </div>
 
-        {/* ── Tags ──────────────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-2">
-          <span className={fieldLabel}>Tags</span>
-
-          {tags.length > 0 && (
-            <ul className="flex flex-wrap items-center gap-1.5">
-              {tags.map((tag) => (
-                <li
-                  key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-gray-100 py-1 pl-2.5 pr-1 text-xs font-medium text-gray-600"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    aria-label={`Remove tag ${tag}`}
-                    className={cn(
-                      'inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-400',
-                      t.pressable,
-                      t.focusRing,
-                    )}
-                  >
-                    <X className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex items-center gap-2">
-            <Input
-              value={tagDraft}
-              placeholder="Add a tag…"
-              aria-label="Add a tag"
-              onChange={(e) => setTagDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ',') {
-                  e.preventDefault();
-                  addTags();
-                }
-              }}
-            />
-            <Button
-              variant="outline"
-              iconOnly
-              aria-label="Add tag"
-              disabled={!tagDraft.trim()}
-              onClick={addTags}
-              className="h-11 w-11 shrink-0"
-            >
-              <Plus />
-            </Button>
-          </div>
-          <p className={t.meta}>Separate several tags with commas.</p>
-        </div>
 
         {/* ── Actions ───────────────────────────────────────────────────── */}
         <div className="flex gap-3 pt-1">

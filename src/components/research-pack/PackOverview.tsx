@@ -68,14 +68,6 @@ export function PackOverview({
 
   return (
     <div className={t.sectionGap}>
-      {/* ── Description ───────────────────────────────────────────────── */}
-      <PackSection title="About">
-        <p className="text-sm leading-relaxed text-gray-600">
-          {pack.description ?? 'No description yet. Edit the pack to add one.'}
-        </p>
-        <PackTagList tags={pack.tags} className="mt-3" />
-      </PackSection>
-
       {/* ── Stat row ──────────────────────────────────────────────────── */}
       <PackSection title="Linked items">
         <div className="grid grid-cols-4 gap-2">

@@ -25,7 +25,7 @@ import type {
 import { useChatStore } from '@/store/chatStore';
 import { useUIStore } from '@/store/uiStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import { SuggestedActions } from './SuggestedActions';
 import { WebSearchResults } from './WebSearchResults';
 
@@ -485,18 +485,14 @@ function ResearchPackSummaryCard({ packId }: { packId: string }) {
               {pack.aiSummary}
             </p>
           ) : (
-            pack.description && (
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600">
-                {pack.description}
-              </p>
-            )
+            null
           )}
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
             <span>{sourceCount} source{sourceCount === 1 ? '' : 's'}</span>
             <span aria-hidden="true">·</span>
             <span>{linkedCount} linked item{linkedCount === 1 ? '' : 's'}</span>
             <span aria-hidden="true">·</span>
-            <span className="capitalize">{pack.status}</span>
+            <span>updated {formatRelativeTime(pack.updatedAt)}</span>
           </div>
         </div>
       </div>
@@ -534,10 +530,10 @@ function ResearchPackSummaryCard({ packId }: { packId: string }) {
               linkedEntityId: pack.id,
               title: pack.title,
               subtitle: `${sourceCount} sources`,
-              snippet: pack.aiSummary ?? pack.description,
+              snippet: pack.aiSummary,
               color: pack.color ?? '#6366f1',
               isHighlighted: false,
-              tags: pack.tags,
+              tags: [],
               metadata: {},
             });
             addToast({ variant: 'success', title: 'Added to Workboard', message: pack.title });

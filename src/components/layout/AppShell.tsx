@@ -102,9 +102,17 @@ export function AppShell({ children }: AppShellProps) {
         {/* Global toast notifications */}
         <ToastContainer />
 
-        {/* Portal target for dialogs, so they render inside the frame rather
-            than over the whole window on wide screens. */}
-        <div id="overlay-root" className="absolute inset-0 pointer-events-none empty:hidden [&>*]:pointer-events-auto" />
+        {/* Portal target for sheets, modals and dialogs.
+            `fixed` rather than `absolute`: focusing a field inside a sheet makes
+            the browser scroll the nearest scrollable ancestor — which is this
+            frame, even though it is overflow-hidden — and absolutely-positioned
+            children scroll away with it. Fixed positioning is immune to that,
+            and the left-1/2 / max-w pair reproduces the frame's own geometry so
+            overlays still sit exactly over the phone column. */}
+        <div
+          id="overlay-root"
+          className="pointer-events-none fixed inset-y-0 left-1/2 w-full max-w-[420px] -translate-x-1/2 empty:hidden [&>*]:pointer-events-auto"
+        />
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Note } from '@/types/index';
 import { mockApi } from '@/services/mockApi';
-import { mockNotes } from '@/data/notes';
+import { seededNotes } from '@/data/seeded';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,7 +71,7 @@ export const useNoteStore = create<NoteStore>()(
   persist(
     (set, get) => ({
       // ── Initial state ──────────────────────────────────────────────────
-      notes: mockNotes,
+      notes: seededNotes,
       isLoading: false,
       selectedNote: null,
       searchQuery: '',

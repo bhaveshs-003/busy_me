@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useOverlay } from '@/lib/useOverlay'
 
@@ -32,11 +33,15 @@ export function Modal({
 
   useOverlay(open, onClose, dialogRef)
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
   const isFullscreen = variant === 'fullscreen'
 
-  return (
+  // See BottomSheet: portalling into the frame keeps the modal centred on the
+  // phone frame rather than on whichever scrolled ancestor is nearest.
+  const overlayRoot = document.getElementById('overlay-root') ?? document.body
+
+  return createPortal(
     <div
       className="absolute inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
@@ -71,7 +76,8 @@ export function Modal({
         )}
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    overlayRoot
   )
 }
 

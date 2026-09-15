@@ -234,11 +234,8 @@ export const useChatStore = create<ChatStore>()(
         const pack: ResearchPack = {
           id: `pack-${Date.now()}`,
           title: 'Research Pack from Workboard',
-          description: `Created from ${workboard.length} workboard item(s)`,
-          status: 'active',
           coverImageUrl: null,
           color: '#6366f1',
-          tags: [],
           linkedContactIds: [],
           linkedEmailIds: [],
           linkedEventIds: [],

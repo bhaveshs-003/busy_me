@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowUpRight,
@@ -9,6 +9,7 @@ import {
   Loader2,
   Mail,
   ListTodo,
+  Search,
   NotebookPen,
   User,
   X,
@@ -18,7 +19,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useUIStore } from '@/store/uiStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useOverlay } from '@/lib/useOverlay';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, formatRelativeTime } from '@/lib/utils';
 
 // =============================================================================
 // Workboard — collection tray for artifacts captured from the conversation
@@ -155,24 +156,99 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
   const workboard = useChatStore((s) => s.workboard);
   const removeFromWorkboard = useChatStore((s) => s.removeFromWorkboard);
   const addToast = useUIStore((s) => s.addToast);
+  const packs = useResearchPackStore((s) => s.packs);
   const createPack = useResearchPackStore((s) => s.createPack);
   const addItemToPack = useResearchPackStore((s) => s.addItemToPack);
 
-  const [isNaming, setIsNaming] = useState(false);
+  // The footer is a small state machine: pick a destination, then act on it.
+  const [mode, setMode] = useState<'idle' | 'new' | 'existing'>('idle');
   const [packTitle, setPackTitle] = useState('');
+  const [packQuery, setPackQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   const count = workboard.length;
+
+  // Most recently touched first — the pack you are working in is the one you
+  // are most likely filing into.
+  const sortedPacks = useMemo(
+    () =>
+      [...packs].sort(
+        (a, b) =>
+          Date.parse(b.lastActivityAt ?? b.updatedAt) -
+          Date.parse(a.lastActivityAt ?? a.updatedAt),
+      ),
+    [packs],
+  );
+
+  const matchingPacks = useMemo(() => {
+    const needle = packQuery.trim().toLowerCase();
+    if (!needle) return sortedPacks;
+    return sortedPacks.filter((pack) => pack.title.toLowerCase().includes(needle));
+  }, [sortedPacks, packQuery]);
 
   function defaultTitle(): string {
     if (workboard.length === 1) return workboard[0].title.slice(0, 60);
     return `Workboard Pack — ${formatDate(new Date())}`;
   }
 
-  function startNaming() {
+  function startNew() {
     if (count === 0) return;
     setPackTitle(defaultTitle());
-    setIsNaming(true);
+    setMode('new');
+  }
+
+  function startExisting() {
+    if (count === 0) return;
+    setPackQuery('');
+    setMode('existing');
+  }
+
+  /**
+   * Moves every Workboard item onto a pack's timeline and clears the tray.
+   *
+   * Shared by both destinations so the two paths cannot drift — a new pack and
+   * an existing one file items identically.
+   */
+  function fileItemsIntoPack(packId: string, items: WorkboardItem[]) {
+    for (const item of items) {
+      const meta = WORKBOARD_TYPE_META[item.type] ?? WORKBOARD_TYPE_META.note;
+      const url = item.metadata?.url;
+      addItemToPack(packId, {
+        type: meta.timelineType,
+        title: item.title,
+        summary: item.snippet ?? item.subtitle,
+        occurredAt: item.addedAt,
+        sourceUrl: typeof url === 'string' ? url : undefined,
+        metadata: item.metadata ?? {},
+        isAIGenerated: false,
+      });
+      removeFromWorkboard(item.id);
+    }
+  }
+
+  async function handleAddToExisting(pack: { id: string; title: string }) {
+    if (count === 0 || isCreating) return;
+    const items = [...workboard];
+    setIsCreating(true);
+    try {
+      fileItemsIntoPack(pack.id, items);
+      addToast({
+        variant: 'success',
+        title: 'Added to Research Pack',
+        message: `${items.length} item${items.length === 1 ? '' : 's'} added to "${pack.title}".`,
+      });
+      setMode('idle');
+      onClose();
+      navigate(`/research-packs/${pack.id}`);
+    } catch (err) {
+      addToast({
+        variant: 'error',
+        title: "Couldn't add to the pack",
+        message: (err as Error).message,
+      });
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   function handleOpen(item: WorkboardItem) {
@@ -202,24 +278,9 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
     try {
       const pack = await createPack({
         title: packTitle.trim() || defaultTitle(),
-        description: `Compiled from ${items.length} Workboard item${items.length === 1 ? '' : 's'} in chat.`,
-        tags: Array.from(new Set(items.flatMap((i) => i.tags))).slice(0, 6),
       });
 
-      for (const item of items) {
-        const meta = WORKBOARD_TYPE_META[item.type] ?? WORKBOARD_TYPE_META.note;
-        const url = item.metadata?.url;
-        addItemToPack(pack.id, {
-          type: meta.timelineType,
-          title: item.title,
-          summary: item.snippet ?? item.subtitle,
-          occurredAt: item.addedAt,
-          sourceUrl: typeof url === 'string' ? url : undefined,
-          metadata: item.metadata ?? {},
-          isAIGenerated: false,
-        });
-        removeFromWorkboard(item.id);
-      }
+      fileItemsIntoPack(pack.id, items);
 
       addToast({
         variant: 'success',
@@ -227,7 +288,7 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
         message: `${items.length} item${items.length === 1 ? '' : 's'} added to "${pack.title}".`,
       });
 
-      setIsNaming(false);
+      setMode('idle');
       onClose();
       navigate(`/research-packs/${pack.id}`);
     } catch (err) {
@@ -264,12 +325,12 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
 
         <button
           type="button"
-          onClick={startNaming}
+          onClick={startNew}
           disabled={count === 0}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-orange-500 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
         >
           <FolderPlus className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Create Pack</span>
+          <span>Save</span>
         </button>
 
         <button
@@ -288,7 +349,7 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
           <div className="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
             <div
               aria-hidden="true"
-              className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-white ring-1 ring-gray-200"
+              className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-gray-100 bg-white"
             >
               <Layers className="h-6 w-6 text-gray-400" />
             </div>
@@ -308,7 +369,7 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
 
       {/* Footer */}
       <footer className="flex-shrink-0 border-t border-gray-100 bg-white p-3 safe-bottom">
-        {isNaming ? (
+        {mode === 'new' && (
           <div className="space-y-2">
             <label htmlFor="wb-pack-title" className="block text-xs font-semibold text-gray-600">
               Name your Research Pack
@@ -320,7 +381,7 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
               onChange={(e) => setPackTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void handleCreatePack();
-                if (e.key === 'Escape') setIsNaming(false);
+                if (e.key === 'Escape') setMode('idle');
               }}
               className="w-full rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-900 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               placeholder="Research Pack title"
@@ -328,8 +389,8 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setIsNaming(false)}
-                className="h-10 flex-1 rounded-lg border border-gray-100 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                onClick={() => setMode('idle')}
+                className="h-10 flex-1 rounded-lg border border-gray-100 text-sm font-semibold text-gray-700 transition-colors active:opacity-60"
               >
                 Cancel
               </button>
@@ -337,25 +398,104 @@ function WorkboardBody({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => void handleCreatePack()}
                 disabled={isCreating}
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-orange-500 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-orange-500 text-sm font-semibold text-white transition-colors active:bg-orange-600 disabled:opacity-60"
               >
                 {isCreating && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 Create
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={startNaming}
-            disabled={count === 0}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          >
-            <FolderPlus className="h-4 w-4" aria-hidden="true" />
-            {count === 0
-              ? 'Create Research Pack'
-              : `Create Research Pack from ${count} item${count === 1 ? '' : 's'}`}
-          </button>
+        )}
+
+        {mode === 'existing' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-gray-600">
+                Add {count} item{count === 1 ? '' : 's'} to…
+              </span>
+              <button
+                type="button"
+                onClick={() => setMode('idle')}
+                className="rounded-lg px-1.5 py-1 text-xs font-semibold text-gray-500 active:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                aria-hidden="true"
+              />
+              <input
+                value={packQuery}
+                autoFocus
+                onChange={(e) => setPackQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setMode('idle');
+                }}
+                placeholder="Search packs"
+                aria-label="Search research packs"
+                className="w-full rounded-lg border border-gray-100 py-2 pl-8 pr-3 text-sm text-gray-900 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <ul className="max-h-48 space-y-1 overflow-y-auto">
+              {matchingPacks.length === 0 ? (
+                <li className="px-1 py-3 text-center text-xs text-gray-400">
+                  {packs.length === 0
+                    ? 'No packs yet — create one instead.'
+                    : `No packs match “${packQuery}”.`}
+                </li>
+              ) : (
+                matchingPacks.map((pack) => (
+                  <li key={pack.id}>
+                    <button
+                      type="button"
+                      disabled={isCreating}
+                      onClick={() => void handleAddToExisting(pack)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 text-left transition-opacity active:opacity-60 disabled:opacity-50"
+                    >
+                      <Layers className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-gray-900">
+                          {pack.title}
+                        </span>
+                        <span className="block truncate text-[11px] text-gray-400">
+                          {pack.timeline.length} item
+                          {pack.timeline.length === 1 ? '' : 's'} · updated{' '}
+                          {formatRelativeTime(pack.updatedAt)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        )}
+
+        {mode === 'idle' && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={startExisting}
+              disabled={count === 0 || packs.length === 0}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-gray-100 text-sm font-semibold text-gray-700 transition-opacity active:opacity-60 disabled:cursor-not-allowed disabled:text-gray-400"
+            >
+              <Layers className="h-4 w-4" aria-hidden="true" />
+              Add to Pack
+            </button>
+            <button
+              type="button"
+              onClick={startNew}
+              disabled={count === 0}
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-orange-500 text-sm font-semibold text-white transition-colors active:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <FolderPlus className="h-4 w-4" aria-hidden="true" />
+              New Pack
+            </button>
+          </div>
         )}
       </footer>
     </div>

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useOverlay } from '@/lib/useOverlay'
 
 interface BottomSheetProps {
@@ -46,11 +47,17 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     [onClose]
   )
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
   const isDragging = dragOffset > 0
 
-  return (
+  // Portal into the phone frame's overlay root. Rendering in place anchors the
+  // sheet to whatever positioned ancestor happens to be nearest — which, on a
+  // scrollable page, means the sheet scrolls away with the content instead of
+  // sitting against the bottom of the frame.
+  const overlayRoot = document.getElementById('overlay-root') ?? document.body
+
+  return createPortal(
     <div className="absolute inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
@@ -83,7 +90,8 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         )}
         <div className="flex-1 overflow-y-auto overscroll-contain">{children}</div>
       </div>
-    </div>
+    </div>,
+    overlayRoot
   )
 }
 
