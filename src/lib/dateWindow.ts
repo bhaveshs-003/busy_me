@@ -39,3 +39,44 @@ export function isWithinWindow(iso: string | null | undefined, now: number): boo
   const at = parse(iso)
   return at !== null && Math.abs(at - now) <= WINDOW_MS
 }
+
+// ── Day-scoped helpers, for the To-Do view ──────────────────────────────────
+
+export interface DayBounds {
+  /** Inclusive start of the day, local time. */
+  start: number
+  /** Exclusive end of the day. */
+  end: number
+  /** Days from today: -1 yesterday, 0 today, +1 tomorrow. */
+  offset: number
+}
+
+/**
+ * Calendar-day bounds for an offset from today, in the viewer's local timezone.
+ *
+ * Deliberately local rather than UTC: "due today" has to mean the user's today,
+ * or an item due late in the evening would land on the wrong day.
+ */
+export function dayBounds(offsetDays: number, now: number): DayBounds {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  start.setDate(start.getDate() + offsetDays)
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+
+  return { start: start.getTime(), end: end.getTime(), offset: offsetDays }
+}
+
+/** Whether a timestamp falls inside the given calendar day. */
+export function isOnDay(iso: string | null | undefined, bounds: DayBounds): boolean {
+  const at = parse(iso)
+  return at !== null && at >= bounds.start && at < bounds.end
+}
+
+/** "today" / "yesterday" / "tomorrow" — used in headings and empty copy. */
+export function dayLabel(offset: number): string {
+  if (offset === -1) return 'yesterday'
+  if (offset === 1) return 'tomorrow'
+  return 'today'
+}

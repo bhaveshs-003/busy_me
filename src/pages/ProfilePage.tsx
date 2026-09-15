@@ -6,15 +6,12 @@ import {
   BellRing,
   CalendarClock,
   CreditCard,
-  Fingerprint,
   Hourglass,
-  KeyRound,
   Link2,
   LogOut,
   MessageSquareReply,
   RefreshCw,
   RotateCcw,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -30,7 +27,6 @@ import {
 } from '@/components/profile/SettingsRow';
 import { RebaseSheet } from '@/components/profile/RebaseSheet';
 import { AccountDeletionFlow } from '@/components/profile/AccountDeletionFlow';
-import { ChangePinSheet } from '@/components/profile/ChangePinSheet';
 import { settingsPath } from '@/pages/SettingsPage';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
@@ -52,7 +48,6 @@ export default function ProfilePage() {
 
   const userProfile = useSettingsStore((s) => s.userProfile);
   const subscription = useSettingsStore((s) => s.subscription);
-  const security = useSettingsStore((s) => s.security);
   const notifications = useSettingsStore((s) => s.appSettings.notifications);
   const updateNotifications = useSettingsStore((s) => s.updateNotifications);
   const resetAllData = useSettingsStore((s) => s.resetAllData);
@@ -62,7 +57,6 @@ export default function ProfilePage() {
   const addToast = useUIStore((s) => s.addToast);
 
   const [rebaseSource, setRebaseSource] = useState<RebaseSource | null>(null);
-  const [isChangingPin, setChangingPin] = useState(false);
   const [isDeleting, setDeleting] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -174,27 +168,6 @@ export default function ProfilePage() {
             />
           </SettingsGroup>
 
-          {/* ── Security ──────────────────────────────────────────────── */}
-          <SettingsGroup title="Security">
-            <SettingsRow
-              icon={<ShieldCheck />}
-              label="Two-Factor Authentication"
-              value={security.twoFactorEnabled ? 'On' : 'Off'}
-              to={settingsPath('security')}
-            />
-            <SettingsRow
-              icon={<Fingerprint />}
-              label="Biometric Unlock"
-              description="Require Face ID when reopening the app"
-              to={settingsPath('security')}
-            />
-            <SettingsRow
-              icon={<KeyRound />}
-              label="Change PIN"
-              onClick={() => setChangingPin(true)}
-            />
-          </SettingsGroup>
-
           {/* ── Notifications ─────────────────────────────────────────── */}
           <SettingsGroup title="Notifications">
             <SettingsToggleRow
@@ -282,8 +255,6 @@ export default function ProfilePage() {
         source={rebaseSource ?? 'gmail'}
         onClose={() => setRebaseSource(null)}
       />
-
-      <ChangePinSheet open={isChangingPin} onClose={() => setChangingPin(false)} />
 
       <AccountDeletionFlow open={isDeleting} onClose={() => setDeleting(false)} />
 

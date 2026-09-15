@@ -37,14 +37,21 @@ import { useContactStore } from '@/store/contactStore';
 import { useResearchPackStore } from '@/store/researchPackStore';
 import { useUIStore } from '@/store/uiStore';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import { isRecent, isUpcoming, isWithinWindow } from '@/lib/dateWindow';
+import {
+  dayBounds,
+  dayLabel,
+  isOnDay,
+  isRecent,
+  isUpcoming,
+  isWithinWindow,
+} from '@/lib/dateWindow';
 import * as t from '@/lib/theme';
 
 // =============================================================================
 // Categories
 // =============================================================================
 
-type CategoryId = 'packs' | 'emails' | 'tasks' | 'events' | 'notes' | 'contacts';
+type CategoryId = 'todo' | 'packs' | 'emails' | 'tasks' | 'events' | 'notes' | 'contacts';
 
 interface CategoryMeta {
   id: CategoryId;
@@ -58,11 +65,15 @@ interface CategoryMeta {
    * The category's dedicated full screen. Ongoings is a digest; each of these
    * pages carries the tools the digest omits (compose, grouping, A–Z, filters),
    * and with a four-tab bottom nav this is their only entry point.
+   *
+   * Absent for To-Do, which is a cross-entity view with no single home screen —
+   * the "View all" affordance is hidden when there is nothing to open.
    */
-  route: string;
+  route?: string;
 }
 
 const CATEGORIES: CategoryMeta[] = [
+  { id: 'todo', label: 'To-Do', icon: <ListTodo />, searchPlaceholder: 'Search this day…' },
   { id: 'packs', label: 'Research Packs', chipLabel: 'Packs', icon: <Layers />, searchPlaceholder: 'Search research packs…', route: '/research-packs' },
   { id: 'emails', label: 'Emails', icon: <Mail />, searchPlaceholder: 'Search emails…', route: '/emails' },
   { id: 'tasks', label: 'Tasks', icon: <ListTodo />, searchPlaceholder: 'Search tasks…', route: '/tasks' },
@@ -81,6 +92,7 @@ const CATEGORY_BY_ID: Record<CategoryId, CategoryMeta> = CATEGORIES.reduce(
 
 /** Singular/plural noun used in the header subtitle. */
 const CATEGORY_NOUN: Record<CategoryId, [string, string]> = {
+  todo: ['item', 'items'],
   packs: ['research pack', 'research packs'],
   emails: ['email', 'emails'],
   tasks: ['task', 'tasks'],
@@ -342,7 +354,9 @@ export default function OngoingsPage() {
   const fetchContacts = useContactStore((s) => s.fetchContacts);
 
   // ── Local state ──────────────────────────────────────────────────────────
-  const [category, setCategory] = useState<CategoryId>('packs');
+  const [category, setCategory] = useState<CategoryId>('todo');
+  /** Days from today for the To-Do view: -1, 0 or +1. */
+  const [dayOffset, setDayOffset] = useState(0);
   const [query, setQuery] = useState('');
   const [isSearchOpen, setSearchOpen] = useState(false);
 
@@ -441,8 +455,74 @@ export default function OngoingsPage() {
     [contacts, activeAddresses, now],
   );
 
+  // ── To-Do: one calendar day, across entity types ─────────────────────────
+  //
+  // A separate axis from the 7-day digest above: these are the things that
+  // actually land on the selected day.
+  const bounds = useMemo(() => dayBounds(dayOffset, now), [dayOffset, now]);
+
+  /** Due or reminded that day, and not already done. */
+  const todoTasks = useMemo(
+    () =>
+      sortTasks(
+        tasks.filter(
+          (task) =>
+            task.status !== 'completed' &&
+            (isOnDay(task.dueDate, bounds) || isOnDay(task.reminderAt, bounds)),
+        ),
+        now,
+      ),
+    [tasks, bounds, now],
+  );
+
+  const todoEvents = useMemo(
+    () => sortEvents(events.filter((event) => isOnDay(event.startAt, bounds)), now),
+    [events, bounds, now],
+  );
+
+  /**
+   * A pack lands on the day when its own due date does, or when any task or
+   * event linked to it does. The counts come from the same filtered pools above
+   * so the pack row and the Tasks/Events groups can never disagree.
+   */
+  const todoPacks = useMemo(
+    () =>
+      packs
+        .map((pack) => {
+          const pendingCount =
+            todoTasks.filter(
+              (t) => pack.linkedTaskIds.includes(t.id) || t.linkedResearchPackId === pack.id,
+            ).length +
+            todoEvents.filter(
+              (e) => pack.linkedEventIds.includes(e.id) || e.linkedResearchPackId === pack.id,
+            ).length;
+          return { pack, pendingCount, isDue: isOnDay(pack.dueDate, bounds) };
+        })
+        .filter((row) => row.pendingCount > 0 || row.isDue)
+        .sort((a, b) => b.pendingCount - a.pendingCount),
+    [packs, todoTasks, todoEvents, bounds],
+  );
+
+  /** Notes never qualify alone — only as context on a pack that landed today. */
+  const todoNotes = useMemo(() => {
+    const packIds = new Set(todoPacks.map((row) => row.pack.id));
+    if (packIds.size === 0) return [];
+    return sortNotes(
+      notes.filter(
+        (note) =>
+          !note.isArchived &&
+          note.linkedResearchPackId !== undefined &&
+          packIds.has(note.linkedResearchPackId),
+      ),
+    );
+  }, [notes, todoPacks]);
+
+  const todoTotal =
+    todoTasks.length + todoEvents.length + todoPacks.length + todoNotes.length;
+
   const counts: Record<CategoryId, number> = useMemo(
     () => ({
+      todo: todoTotal,
       packs: orderedPacks.length,
       emails: orderedEmails.length,
       tasks: orderedTasks.length,
@@ -450,7 +530,15 @@ export default function OngoingsPage() {
       notes: orderedNotes.length,
       contacts: orderedContacts.length,
     }),
-    [orderedPacks, orderedEmails, orderedTasks, orderedEvents, orderedNotes, orderedContacts],
+    [
+      todoTotal,
+      orderedPacks,
+      orderedEmails,
+      orderedTasks,
+      orderedEvents,
+      orderedNotes,
+      orderedContacts,
+    ],
   );
 
   // ── Search applied within the active category ────────────────────────────
@@ -487,6 +575,7 @@ export default function OngoingsPage() {
   );
 
   const visibleCount: Record<CategoryId, number> = {
+    todo: todoTotal,
     packs: visiblePacks.length,
     emails: visibleEmails.length,
     tasks: visibleTasks.length,
@@ -497,6 +586,7 @@ export default function OngoingsPage() {
 
   // ── Per-category loading / error plumbing ────────────────────────────────
   const loadingByCategory: Record<CategoryId, boolean> = {
+    todo: false,
     packs: packsLoading,
     emails: emailsLoading,
     tasks: tasksLoading,
@@ -506,6 +596,7 @@ export default function OngoingsPage() {
   };
 
   const errorByCategory: Record<CategoryId, string | null> = {
+    todo: null,
     packs: packsError,
     emails: emailsError,
     tasks: tasksError,
@@ -515,6 +606,7 @@ export default function OngoingsPage() {
   };
 
   const retryByCategory: Record<CategoryId, () => void> = {
+    todo: () => undefined,
     packs: () => void fetchPacks(),
     emails: () => void fetchEmails(),
     tasks: () => void fetchTasks(),
@@ -527,6 +619,15 @@ export default function OngoingsPage() {
     CategoryId,
     { title: string; description: string; actionLabel: string; onAction: () => void }
   > = {
+    todo: {
+      title: `Nothing due ${dayLabel(dayOffset)}`,
+      description:
+        dayOffset === 0
+          ? 'No tasks, events or packs land on today. Enjoy the quiet.'
+          : `Nothing is scheduled for ${dayLabel(dayOffset)}.`,
+      actionLabel: 'View all tasks',
+      onAction: () => navigate('/tasks'),
+    },
     packs: {
       title: 'No packs active this week',
       description: 'Nothing has moved in the last 7 days. Open all packs to see the rest.',
@@ -602,8 +703,82 @@ export default function OngoingsPage() {
   const isEmpty = !error && !showSkeleton && shown === 0;
   const [singular, plural] = CATEGORY_NOUN[category];
 
+  /** Hairline group heading inside the To-Do list. */
+  const TodoGroup = ({ label, count, children }: { label: string; count: number; children: React.ReactNode }) =>
+    count === 0 ? null : (
+      <section>
+        <h3 className={cn(t.label, 'mb-1.5 uppercase tracking-wide')}>
+          {label} <span className="text-gray-400">{count}</span>
+        </h3>
+        {children}
+      </section>
+    );
+
   const renderList = () => {
     switch (category) {
+      case 'todo':
+        return (
+          <div className="space-y-5">
+            <TodoGroup label="Tasks" count={todoTasks.length}>
+              <ul className="space-y-2">
+                {todoTasks.map((task) => (
+                  <li key={task.id}>
+                    <TaskCard
+                      task={task}
+                      onToggleComplete={handleToggleComplete}
+                      onClick={(x) => navigate(`/tasks/${x.id}`)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </TodoGroup>
+
+            <TodoGroup label="Events" count={todoEvents.length}>
+              <ul className="space-y-2">
+                {todoEvents.map((event) => (
+                  <li key={event.id}>
+                    <EventCard event={event} onClick={(x) => navigate(`/events/${x.id}`)} />
+                  </li>
+                ))}
+              </ul>
+            </TodoGroup>
+
+            <TodoGroup label="Research packs" count={todoPacks.length}>
+              <RowCard>
+                {todoPacks.map(({ pack, pendingCount }) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => navigate(`/research-packs/${pack.id}`)}
+                    className={rowClass}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                      <Layers className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn('block truncate', t.title)}>{pack.title}</span>
+                      <span className={cn('mt-0.5 block truncate', t.meta)}>
+                        {pendingCount > 0
+                          ? `${pendingCount} item${pendingCount === 1 ? '' : 's'} due`
+                          : 'Pack due'}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" aria-hidden="true" />
+                  </button>
+                ))}
+              </RowCard>
+            </TodoGroup>
+
+            <TodoGroup label="Notes" count={todoNotes.length}>
+              <RowCard>
+                {todoNotes.map((note) => (
+                  <NoteRow key={note.id} note={note} onOpen={(n) => navigate(`/notes/${n.id}`)} />
+                ))}
+              </RowCard>
+            </TodoGroup>
+          </div>
+        );
+
       case 'packs':
         return (
           <RowCard>
@@ -681,7 +856,11 @@ export default function OngoingsPage() {
     <div className="flex h-full flex-col bg-gray-50">
       <PageHeader
         title="Ongoings"
-        subtitle={`${total} ${total === 1 ? singular : plural} this week`}
+        subtitle={
+          category === 'todo'
+            ? `${total} ${total === 1 ? singular : plural} due ${dayLabel(dayOffset)}`
+            : `${total} ${total === 1 ? singular : plural} this week`
+        }
         rightActions={
           <Button
             iconOnly
@@ -749,6 +928,39 @@ export default function OngoingsPage() {
           />
         </div>
 
+        {category === 'todo' && (
+          <div
+            role="tablist"
+            aria-label="Pick a day"
+            className="mt-2 flex items-center gap-1.5"
+          >
+            {([-1, 0, 1] as const).map((offset) => {
+              const isActive = offset === dayOffset;
+              const label =
+                offset === -1 ? 'Yesterday' : offset === 1 ? 'Tomorrow' : 'Today';
+              return (
+                <button
+                  key={offset}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setDayOffset(offset)}
+                  className={cn(
+                    'flex-1 whitespace-nowrap rounded-lg border px-3 py-2 text-[13px] font-medium',
+                    t.pressable,
+                    t.focusRing,
+                    isActive
+                      ? cn('border-transparent', t.brandFill)
+                      : cn(t.hairline, 'bg-white text-gray-600'),
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {isSearchOpen && (
           <SearchBar
             className="mt-2"
@@ -797,14 +1009,17 @@ export default function OngoingsPage() {
 
         {!error && !showSkeleton && shown > 0 && (
           <>
-            {/* Digest header — the only route into the category's full screen. */}
-            <div className="mb-2 flex items-center justify-between gap-3">
+            {/* Digest header — the only route into the category's full screen.
+                To-Do has no such screen and its subtitle already states the
+                count, so the row would just repeat itself. */}
+            <div className={cn('mb-2 flex items-center justify-between gap-3', category === 'todo' && 'hidden')}>
               <span className={t.label}>
                 {shown} {shown === 1 ? activeMeta.label.replace(/s$/, '') : activeMeta.label}
               </span>
+              {activeMeta.route && (
               <button
                 type="button"
-                onClick={() => navigate(activeMeta.route)}
+                onClick={() => navigate(activeMeta.route!)}
                 className={cn(
                   'inline-flex items-center gap-0.5 text-xs font-semibold text-brand-600',
                   t.pressable,
@@ -815,6 +1030,7 @@ export default function OngoingsPage() {
                 View all
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
+              )}
             </div>
             {renderList()}
           </>

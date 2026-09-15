@@ -233,7 +233,10 @@ export function CreateEventSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose} title="New event">
-      <div className="flex flex-col gap-5 px-5 pb-6 pt-4">
+      {/* Fixed height + inner scroll keeps the actions pinned in view; letting the
+          form set its own height pushed Create event below the fold. */}
+      <div className="flex h-[68vh] flex-col">
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pb-4 pt-4">
         {/* ── Title ─────────────────────────────────────────────────────── */}
         <Input
           label="Title"
@@ -270,7 +273,7 @@ export function CreateEventSheet({
           >
             <span
               className={cn(
-                'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200',
+                'absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200',
                 isAllDay ? 'translate-x-[22px]' : 'translate-x-0.5',
               )}
             />
@@ -279,8 +282,9 @@ export function CreateEventSheet({
 
         {/* ── Start / end ───────────────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn('grid gap-3', isAllDay ? 'grid-cols-1' : 'grid-cols-2')}>
             <Input
+              containerClassName="min-w-0"
               label="Starts"
               type="date"
               value={startDate}
@@ -292,6 +296,7 @@ export function CreateEventSheet({
             />
             {!isAllDay && (
               <Input
+                containerClassName="min-w-0"
                 label="Start time"
                 type="time"
                 value={startTime}
@@ -300,8 +305,9 @@ export function CreateEventSheet({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn('grid gap-3', isAllDay ? 'grid-cols-1' : 'grid-cols-2')}>
             <Input
+              containerClassName="min-w-0"
               label="Ends"
               type="date"
               value={endDate}
@@ -310,6 +316,7 @@ export function CreateEventSheet({
             />
             {!isAllDay && (
               <Input
+                containerClassName="min-w-0"
                 label="End time"
                 type="time"
                 value={endTime}
@@ -502,8 +509,10 @@ export function CreateEventSheet({
           </div>
         </div>
 
-        {/* ── Actions ───────────────────────────────────────────────────── */}
-        <div className="flex gap-3 pt-1">
+      </div>
+
+        {/* ── Actions — pinned ──────────────────────────────────────────── */}
+        <div className="flex flex-shrink-0 gap-3 border-t border-gray-100 bg-white px-5 py-3 safe-bottom">
           <Button variant="outline" className="flex-1" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

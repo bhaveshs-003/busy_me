@@ -2,9 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
 import {
   AlertCircle,
-  CalendarClock,
   Check,
-  Hourglass,
   Loader2,
   Paperclip,
   Send,
@@ -25,22 +23,18 @@ import type {
   EmailAddress,
   EmailAttachment,
   EmailDraft,
-  EmailWaitingOn,
 } from '@/types/index';
 import {
   attachmentVisual,
   dedupeAddresses,
   displayName,
   forwardSubject,
-  fromInputValue,
   isValidEmail,
   parseAddress,
   quotedBody,
   rephraseVariants,
   replySubject,
   sameAddress,
-  toDateInputValue,
-  toDateTimeInputValue,
   type RephraseVariant,
 } from './emailUtils';
 
@@ -79,11 +73,6 @@ interface ComposeState {
   body: string;
   attachments: EmailAttachment[];
   isImportant: boolean;
-  isWaitingOn: boolean;
-  waitingOnEmail: string;
-  chaseDate: string;
-  isScheduled: boolean;
-  scheduledAt: string;
 }
 
 const EMPTY_STATE: ComposeState = {
@@ -94,14 +83,9 @@ const EMPTY_STATE: ComposeState = {
   body: '',
   attachments: [],
   isImportant: false,
-  isWaitingOn: false,
-  waitingOnEmail: '',
-  chaseDate: '',
-  isScheduled: false,
-  scheduledAt: '',
 };
 
-type FieldErrors = Partial<Record<'to' | 'subject' | 'body' | 'waitingOn' | 'schedule', string>>;
+type FieldErrors = Partial<Record<'to' | 'subject' | 'body', string>>;
 
 // ---------------------------------------------------------------------------
 // Initial state derivation
@@ -128,11 +112,6 @@ function buildInitialState({
       body: draft.bodyText,
       attachments: draft.attachments,
       isImportant: draft.isImportant ?? false,
-      isWaitingOn: Boolean(draft.waitingOn),
-      waitingOnEmail: draft.waitingOn?.contactEmail ?? '',
-      chaseDate: toDateInputValue(draft.waitingOn?.chaseDate),
-      isScheduled: Boolean(draft.scheduledSendAt),
-      scheduledAt: toDateTimeInputValue(draft.scheduledSendAt),
     };
   }
 
@@ -439,7 +418,7 @@ function ToggleRow({
               TOGGLE_TONES[tone],
             )}
           />
-          <span className="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
+          <span className="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
         </span>
       </label>
 
@@ -526,21 +505,6 @@ export function ComposeEmail({
     [state.to, state.cc, state.bcc],
   );
 
-  const waitingOnOptions = useMemo(
-    () =>
-      dedupeAddresses([
-        ...recipientPool,
-        ...suggestions.map((s) => s.address),
-      ]).slice(0, 40),
-    [recipientPool, suggestions],
-  );
-
-  // Default the waiting-on contact to the first recipient.
-  useEffect(() => {
-    if (state.isWaitingOn && !state.waitingOnEmail && recipientPool[0]) {
-      patch({ waitingOnEmail: recipientPool[0].email });
-    }
-  }, [state.isWaitingOn, state.waitingOnEmail, recipientPool, patch]);
 
   // ── Attachments ─────────────────────────────────────────────────────────
   const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
@@ -583,14 +547,6 @@ export function ComposeEmail({
     if (!state.subject.trim()) next.subject = 'Add a subject so the thread stays findable.';
     if (!state.body.trim()) next.body = 'Write a message before sending.';
 
-    if (state.isWaitingOn && !state.waitingOnEmail) {
-      next.waitingOn = 'Choose who you are waiting on.';
-    }
-    if (state.isScheduled) {
-      const at = fromInputValue(state.scheduledAt);
-      if (!at) next.schedule = 'Pick a date and time to send.';
-      else if (new Date(at).getTime() <= Date.now()) next.schedule = 'Pick a time in the future.';
-    }
 
     return next;
   };
@@ -600,24 +556,8 @@ export function ComposeEmail({
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const scheduledSendAt = state.isScheduled
-      ? fromInputValue(state.scheduledAt) ?? undefined
-      : undefined;
 
-    const waitingOnContact = waitingOnOptions.find(
-      (a) => a.email === state.waitingOnEmail,
-    );
 
-    const waitingOn: EmailWaitingOn | null =
-      state.isWaitingOn && waitingOnContact
-        ? {
-            contactEmail: waitingOnContact.email,
-            contactName: waitingOnContact.name ?? displayName(waitingOnContact),
-            since: new Date().toISOString(),
-            chaseDate: fromInputValue(state.chaseDate),
-            note: `Awaiting a reply to "${state.subject.trim()}".`,
-          }
-        : null;
 
     const payload: Partial<EmailDraft> = {
       id: draft?.id,
@@ -631,8 +571,6 @@ export function ComposeEmail({
       inReplyToId: mode === 'reply' || mode === 'reply-all' ? sourceEmail?.id : undefined,
       forwardOfId: mode === 'forward' ? sourceEmail?.id : undefined,
       isImportant: state.isImportant,
-      waitingOn,
-      scheduledSendAt,
     };
 
     setIsSending(true);
@@ -641,14 +579,8 @@ export function ComposeEmail({
 
       addToast({
         variant: 'success',
-        title: scheduledSendAt ? 'Email scheduled' : 'Email sent',
-        message: scheduledSendAt
-          ? `Will send ${new Date(scheduledSendAt).toLocaleString('en-US', {
-              weekday: 'short',
-              hour: 'numeric',
-              minute: '2-digit',
-            })} to ${displayName(state.to[0])}.`
-          : `Delivered to ${displayName(state.to[0])}${
+        title: 'Email sent',
+        message: `Delivered to ${displayName(state.to[0])}${
               state.to.length > 1 ? ` and ${state.to.length - 1} other${state.to.length > 2 ? 's' : ''}` : ''
             }.`,
       });
@@ -958,87 +890,7 @@ export function ComposeEmail({
             tone="amber"
           />
 
-          <ToggleRow
-            icon={<Hourglass />}
-            label="Waiting on a reply"
-            description="Busy.me tracks this thread until they respond."
-            checked={state.isWaitingOn}
-            onChange={(isWaitingOn) => patch({ isWaitingOn })}
-            tone="blue"
-          >
-            <div className="flex flex-col gap-2">
-              <label className="flex-1">
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  Waiting on
-                </span>
-                <select
-                  value={state.waitingOnEmail}
-                  onChange={(event) => patch({ waitingOnEmail: event.target.value })}
-                  className="h-9 w-full rounded-lg border border-gray-100 bg-white px-2 text-sm text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                >
-                  <option value="">Choose a contact…</option>
-                  {waitingOnOptions.map((address) => (
-                    <option key={address.email} value={address.email}>
-                      {displayName(address)} · {address.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
 
-              <label>
-                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  Chase date
-                </span>
-                <input
-                  type="date"
-                  value={state.chaseDate}
-                  min={toDateInputValue(new Date().toISOString())}
-                  onChange={(event) => patch({ chaseDate: event.target.value })}
-                  className="h-9 w-full rounded-lg border border-gray-100 bg-white px-2 text-sm text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                />
-              </label>
-            </div>
-            {errors.waitingOn && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
-                <AlertCircle className="h-3 w-3" />
-                {errors.waitingOn}
-              </p>
-            )}
-          </ToggleRow>
-
-          <ToggleRow
-            icon={<CalendarClock />}
-            label="Schedule send"
-            description="Hold the message until a better moment."
-            checked={state.isScheduled}
-            onChange={(isScheduled) => patch({ isScheduled })}
-          >
-            <input
-              type="datetime-local"
-              value={state.scheduledAt}
-              min={toDateTimeInputValue(new Date().toISOString())}
-              onChange={(event) => patch({ scheduledAt: event.target.value })}
-              className="h-9 w-full rounded-lg border border-gray-100 bg-white px-2 text-sm text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-            />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {SCHEDULE_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => patch({ scheduledAt: toDateTimeInputValue(preset.at()) })}
-                  className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-            {errors.schedule && (
-              <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600">
-                <AlertCircle className="h-3 w-3" />
-                {errors.schedule}
-              </p>
-            )}
-          </ToggleRow>
         </div>
       </div>
 
@@ -1047,9 +899,9 @@ export function ComposeEmail({
         <Button
           onClick={handleSend}
           isLoading={isSending}
-          leftIcon={state.isScheduled ? <CalendarClock /> : <Send />}
+          leftIcon={<Send />}
         >
-          {isSending ? 'Sending…' : state.isScheduled ? 'Schedule' : 'Send'}
+          {isSending ? 'Sending…' : 'Send'}
         </Button>
 
         <Button variant="ghost" onClick={onClose} disabled={isSending}>
@@ -1083,34 +935,5 @@ export function ComposeEmail({
 // Schedule presets
 // ---------------------------------------------------------------------------
 
-const SCHEDULE_PRESETS: { label: string; at: () => string }[] = [
-  {
-    label: 'Later today',
-    at: () => {
-      const date = new Date();
-      date.setHours(date.getHours() + 3, 0, 0, 0);
-      return date.toISOString();
-    },
-  },
-  {
-    label: 'Tomorrow 8am',
-    at: () => {
-      const date = new Date();
-      date.setDate(date.getDate() + 1);
-      date.setHours(8, 0, 0, 0);
-      return date.toISOString();
-    },
-  },
-  {
-    label: 'Monday 9am',
-    at: () => {
-      const date = new Date();
-      const daysUntilMonday = ((8 - date.getDay()) % 7) || 7;
-      date.setDate(date.getDate() + daysUntilMonday);
-      date.setHours(9, 0, 0, 0);
-      return date.toISOString();
-    },
-  },
-];
 
 export default ComposeEmail;

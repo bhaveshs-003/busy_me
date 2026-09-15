@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProfileInformationSection } from '@/components/profile/ProfileInformationSection';
 import { SubscriptionSection } from '@/components/profile/SubscriptionSection';
-import { SecuritySection } from '@/components/profile/SecuritySection';
 import { AIPreferencesSection } from '@/components/profile/AIPreferencesSection';
 import { NotificationsSection } from '@/components/profile/NotificationsSection';
 import { DiagnosticsSection } from '@/components/profile/DiagnosticsSection';
@@ -21,7 +20,6 @@ import { useSettingsStore } from '@/store/settingsStore';
 const SECTIONS = {
   profile: { title: 'Profile Information', subtitle: 'Name, contact details and bio' },
   subscription: { title: 'Subscription', subtitle: 'Plan, billing and invoices' },
-  security: { title: 'Security', subtitle: 'Two-factor, unlock and devices' },
   ai: { title: 'AI Preferences', subtitle: 'Name, personality and instructions' },
   notifications: { title: 'Notifications', subtitle: 'What Busy interrupts you for' },
   diagnostics: { title: 'Diagnostics', subtitle: 'Analytics recorded on this device' },
@@ -80,7 +78,6 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-y-auto px-4 pb-10 pt-4">
         {section === 'profile' && <ProfileInformationSection />}
         {section === 'subscription' && <SubscriptionSection />}
-        {section === 'security' && <SecuritySection />}
         {section === 'ai' && <AIPreferencesSection />}
         {section === 'notifications' && <NotificationsSection />}
         {section === 'diagnostics' && <DiagnosticsSection />}

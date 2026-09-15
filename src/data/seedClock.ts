@@ -15,8 +15,17 @@
  * Profile → Demo Control Panel → Reset Demo Data re-seeds against today.
  */
 
-/** The instant the seed data was written around. */
-export const SEED_EPOCH = '2026-09-10T12:00:00Z'
+/**
+ * The instant the seed data is anchored to — whatever "now" is becomes this.
+ *
+ * Deliberately 2026-09-11 rather than the day the data was authored: the shift
+ * preserves each item's offset from this instant, so the day chosen here is the
+ * one that maps onto *today*. 09-11 is the first seeded day carrying both tasks
+ * and an event, which is what keeps the To-Do view populated on open. Picking a
+ * day with no content would leave Today permanently empty however recently the
+ * demo was run.
+ */
+export const SEED_EPOCH = '2026-09-11T12:00:00Z'
 
 /**
  * Offset applied to every seed timestamp, computed once at module load so a
